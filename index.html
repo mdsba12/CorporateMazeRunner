@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corporate Maze Runner</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #0a0a0a, #1a1a2e, #16213e);
+            color: #00ff88;
+            font-family: 'Orbitron', monospace;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                linear-gradient(90deg, transparent 98%, rgba(0, 255, 136, 0.03) 100%),
+                linear-gradient(0deg, transparent 98%, rgba(0, 255, 136, 0.03) 100%);
+            background-size: 20px 20px;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .game-world {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .office-floor {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(30, 1fr);
+            grid-template-rows: repeat(20, 1fr);
+            gap: 1px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ff88;
+            box-shadow: 0 0 50px rgba(0, 255, 136, 0.3);
+        }
+        
+        .tile {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(8px, 1.5vw, 16px);
+            font-weight: 900;
+            position: relative;
+            transition: all 0.1s ease;
+        }
+        
+        /* Office Environments */
+        .wall { 
+            background: linear-gradient(45deg, #2d2d2d, #404040);
+            border: 1px solid #666;
+            color: #888;
+        }
+        
+        .floor { 
+            background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+            border: 1px solid #333;
+        }
+        
+        .cubicle {
+            background: linear-gradient(135deg, #1a1a2e, #2a2a3e);
+            border: 1px solid #444;
+            color: #666;
+        }
+        
+        .server-room {
+            background: linear-gradient(135deg, #001a00, #002200);
+            border: 1px solid #00ff44;
+            animation: serverHum 2s ease-in-out infinite;
+        }
+        
+        @keyframes serverHum {
+            0%, 100% { box-shadow: inset 0 0 5px rgba(0, 255, 68, 0.2); }
+            50% { box-shadow: inset 0 0 10px rgba(0, 255, 68, 0.4); }
+        }
+        
+        /* Characters */
+        .employee {
+            background: linear-gradient(135deg, #1a1a2e, #2a2a3e);
+            color: #00ff88;
+            text-shadow: 0 0 10px #00ff88;
+            animation: playerGlow 1s ease-in-out infinite alternate;
+        }
+        
+        @keyframes playerGlow {
+            from { box-shadow: 0 0 10px rgba(0, 255, 136, 0.5); }
+            to { box-shadow: 0 0 20px rgba(0, 255, 136, 0.8); }
+        }
+        
+        .manager { 
+            background: linear-gradient(135deg, #2a1a1a, #3a2a2a);
+            color: #ff4444; 
+            text-shadow: 0 0 8px #ff4444;
+        }
+        
+        .consultant { 
+            background: linear-gradient(135deg, #1a1a2a, #2a2a3a);
+            color: #ffaa00; 
+            text-shadow: 0 0 8px #ffaa00;
+        }
+        
+        .ceo { 
+            background: linear-gradient(135deg, #2a002a, #3a003a);
+            color: #ff00ff; 
+            text-shadow: 0 0 12px #ff00ff;
+            animation: bossGlow 0.5s ease-in-out infinite alternate;
+        }
+        
+        @keyframes bossGlow {
+            from { transform: scale(1); }
+            to { transform: scale(1.1); }
+        }
+        
+        /* Office Items */
+        .coffee { 
+            color: #8b4513; 
+            text-shadow: 0 0 5px #8b4513;
+        }
+        
+        .laptop { 
+            color: #silver; 
+            text-shadow: 0 0 5px #silver;
+        }
+        
+        .promotion { 
+            color: #gold; 
+            text-shadow: 0 0 8px #gold;
+            animation: shine 1s ease-in-out infinite alternate;
+        }
+        
+        @keyframes shine {
+            from { filter: brightness(1); }
+            to { filter: brightness(1.5); }
+        }
+        
+        .elevator { 
+            background: linear-gradient(135deg, #004400, #006600);
+            color: #00ff00; 
+            text-shadow: 0 0 10px #00ff00;
+            animation: elevatorPing 2s ease-in-out infinite;
+        }
+        
+        @keyframes elevatorPing {
+            0%, 90%, 100% { opacity: 1; }
+            95% { opacity: 0.3; }
+        }
+        
+        /* Corporate HUD */
+        .corporate-hud {
+            width: 350px;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(10, 10, 30, 0.95));
+            border-left: 3px solid #00ff88;
+            padding: 20px;
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .hud-section {
+            background: rgba(0, 255, 136, 0.05);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .hud-title {
+            color: #00ff88;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .stat-bar {
+            background: rgba(0, 0, 0, 0.7);
+            height: 20px;
+            border-radius: 10px;
+            margin: 8px 0;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+        }
+        
+        .stat-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+        
+        .stat-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: shimmer 2s ease-in-out infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .health-bar { background: linear-gradient(90deg, #ff4444, #ff6666); }
+        .stamina-bar { background: linear-gradient(90deg, #4444ff, #6666ff); }
+        .productivity-bar { background: linear-gradient(90deg, #ffaa00, #ffcc44); }
+        
+        .stat-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 11px;
+            font-weight: 700;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+            z-index: 10;
+        }
+        
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .inventory-slot {
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(20, 20, 20, 0.8));
+            border: 2px solid rgba(0, 255, 136, 0.3);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.2s ease;
+        }
+        
+        .inventory-slot:hover {
+            border-color: #00ff88;
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 255, 136, 0.2));
+            transform: scale(1.05);
+        }
+        
+        .inventory-slot.has-item {
+            border-color: #00ff88;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+        
+        .corporate-log {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            font-size: 11px;
+            margin: 4px 0;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(0, 255, 136, 0.1);
+            line-height: 1.4;
+        }
+        
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        
+        .damage { color: #ff6666; }
+        .heal { color: #66ff66; }
+        .loot { color: #ffaa66; }
+        .level-up { color: #ff66ff; }
+        
+        .game-over-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+        
+        .game-over-content {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(20, 20, 40, 0.9));
+            border: 2px solid #ff4444;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 0 50px rgba(255, 68, 68, 0.3);
+        }
+        
+        .corporate-button {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 255, 136, 0.4));
+            border: 2px solid #00ff88;
+            color: #00ff88;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 5px;
+            transition: all 0.2s ease;
+        }
+        
+        .corporate-button:hover {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.4), rgba(0, 255, 136, 0.6));
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .controls-info {
+            font-size: 10px;
+            color: rgba(0, 255, 136, 0.7);
+            margin-top: 20px;
+            line-height: 1.6;
+        }
+        
+        .floor-indicator {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ff88;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div class="floor-indicator" id="floorIndicator">FLOOR 1 - ENTRY LEVEL</div>
+    
+    <div class="game-world">
+        <div class="office-floor" id="officeFloor"></div>
+        
+        <div class="corporate-hud">
+            <div class="hud-section">
+                <div class="hud-title">Employee Status</div>
+                <div>Level: <span id="level">1</span> | Floor: <span id="floor">1</span></div>
+                
+                <div class="stat-bar">
+                    <div class="stat-fill health-bar" id="healthFill"></div>
+                    <div class="stat-text" id="healthText">Health: 100/100</div>
+                </div>
+                
+                <div class="stat-bar">
+                    <div class="stat-fill stamina-bar" id="staminaFill"></div>
+                    <div class="stat-text" id="staminaText">Stamina: 100/100</div>
+                </div>
+                
+                <div class="stat-bar">
+                    <div class="stat-fill productivity-bar" id="productivityFill"></div>
+                    <div class="stat-text" id="productivityText">Productivity: 0/100</div>
+                </div>
+                
+                <div style="margin-top: 15px;">
+                    <div>Performance: <span id="performance">10</span></div>
+                    <div>Reputation: <span id="reputation">5</span></div>
+                    <div>Salary: $<span id="salary">45000</span></div>
+                </div>
+            </div>
+            
+            <div class="hud-section">
+                <div class="hud-title">Inventory</div>
+                <div class="inventory-grid" id="inventory"></div>
+            </div>
+            
+            <div class="hud-section">
+                <div class="hud-title">Corporate Log</div>
+                <div class="corporate-log" id="corporateLog">
+                    <div class="log-entry">💼 Welcome to MegaCorp Industries!</div>
+                    <div class="log-entry">🎯 Navigate office politics and climb the ladder</div>
+                    <div class="log-entry">⚡ Use WASD to move through the corporate maze</div>
+                    <div class="log-entry">🏢 Find elevators (↑) to reach higher floors</div>
+                </div>
+            </div>
+            
+            <div class="controls-info">
+                <strong>CONTROLS:</strong><br>
+                WASD / Arrow Keys: Navigate<br>
+                Click Items: Collect resources<br>
+                Click Inventory: Use items<br>
+                Goal: Survive corporate politics!
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class CorporateMaze {
+            constructor() {
+                this.width = 30;
+                this.height = 20;
+                this.employee = {
+                    x: 0, y: 0, level: 1, health: 100, maxHealth: 100,
+                    stamina: 100, maxStamina: 100, productivity: 0, maxProductivity: 100,
+                    performance: 10, reputation: 5, salary: 45000
+                };
+                this.enemies = [];
+                this.items = [];
+                this.inventory = [];
+                this.floor = 1;
+                this.office = [];
+                this.gameOver = false;
+                
+                this.corporateThemes = {
+                    1: "ENTRY LEVEL",
+                    2: "MIDDLE MANAGEMENT", 
+                    3: "SENIOR MANAGEMENT",
+                    4: "EXECUTIVE FLOOR",
+                    5: "C-SUITE"
+                };
+                
+                this.generateOffice();
+                this.render();
+                this.setupControls();
+            }
+            
+            generateOffice() {
+                // Initialize office layout
+                this.office = Array(this.height).fill().map(() => 
+                    Array(this.width).fill('wall')
+                );
+                
+                // Generate office areas
+                const areas = [];
+                const numAreas = 4 + Math.floor(Math.random() * 3);
+                
+                for (let i = 0; i < numAreas; i++) {
+                    const width = 5 + Math.floor(Math.random() * 8);
+                    const height = 4 + Math.floor(Math.random() * 6);
+                    const x = Math.floor(Math.random() * (this.width - width - 1)) + 1;
+                    const y = Math.floor(Math.random() * (this.height - height - 1)) + 1;
+                    
+                    areas.push({ x, y, width, height });
+                    
+                    // Create office spaces
+                    for (let dy = 0; dy < height; dy++) {
+                        for (let dx = 0; dx < width; dx++) {
+                            const cellType = Math.random() < 0.3 ? 'cubicle' : 
+                                           Math.random() < 0.1 ? 'server-room' : 'floor';
+                            this.office[y + dy][x + dx] = cellType;
+                        }
+                    }
+                }
+                
+                // Connect areas with hallways
+                for (let i = 1; i < areas.length; i++) {
+                    const prev = areas[i - 1];
+                    const curr = areas[i];
+                    
+                    const prevCenterX = Math.floor(prev.x + prev.width / 2);
+                    const prevCenterY = Math.floor(prev.y + prev.height / 2);
+                    const currCenterX = Math.floor(curr.x + curr.width / 2);
+                    const currCenterY = Math.floor(curr.y + curr.height / 2);
+                    
+                    // Horizontal hallway
+                    const startX = Math.min(prevCenterX, currCenterX);
+                    const endX = Math.max(prevCenterX, currCenterX);
+                    for (let x = startX; x <= endX; x++) {
+                        this.office[prevCenterY][x] = 'floor';
+                    }
+                    
+                    // Vertical hallway
+                    const startY = Math.min(prevCenterY, currCenterY);
+                    const endY = Math.max(prevCenterY, currCenterY);
+                    for (let y = startY; y <= endY; y++) {
+                        this.office[y][currCenterX] = 'floor';
+                    }
+                }
+                
+                // Place employee in first area
+                this.employee.x = areas[0].x + 1;
+                this.employee.y = areas[0].y + 1;
+                
+                // Place elevator in last area
+                const lastArea = areas[areas.length - 1];
+                let elevatorPlaced = false;
+                while (!elevatorPlaced) {
+                    const x = lastArea.x + Math.floor(Math.random() * lastArea.width);
+                    const y = lastArea.y + Math.floor(Math.random() * lastArea.height);
+                    if (this.office[y][x] !== 'wall' && (x !== this.employee.x || y !== this.employee.y)) {
+                        this.office[y][x] = 'elevator';
+                        elevatorPlaced = true;
+                    }
+                }
+                
+                this.generateCorporateEntities();
+            }
+            
+            generateCorporateEntities() {
+                this.enemies = [];
+                this.items = [];
+                
+                const numEnemies = 2 + this.floor;
+                const numItems = 3 + Math.floor(this.floor / 2);
+                
+                // Corporate enemies
+                const enemyTypes = [
+                    { symbol: 'M', name: 'Micromanager', health: 30, attack: 8, productivity: 20 },
+                    { symbol: 'C', name: 'Consultant', health: 25, attack: 12, productivity: 30 },
+                    { symbol: 'B', name: 'CEO', health: 60, attack: 15, productivity: 50 }
+                ];
+                
+                for (let i = 0; i < numEnemies; i++) {
+                    this.placeEntityRandomly((x, y) => {
+                        const typeIndex = Math.min(enemyTypes.length - 1, Math.floor(this.floor / 2));
+                        const enemyType = enemyTypes[typeIndex];
+                        
+                        const enemy = {
+                            x, y,
+                            symbol: enemyType.symbol,
+                            name: enemyType.name,
+                            health: enemyType.health + this.floor * 5,
+                            maxHealth: enemyType.health + this.floor * 5,
+                            attack: enemyType.attack + this.floor * 2,
+                            productivity: enemyType.productivity
+                        };
+                        
+                        this.enemies.push(enemy);
+                    });
+                }
+                
+                // Corporate items
+                const itemTypes = [
+                    { symbol: '☕', name: 'Coffee', effect: 'stamina', value: 30, color: '#8b4513' },
+                    { symbol: '💻', name: 'Laptop Upgrade', effect: 'performance', value: 5, color: 'silver' },
+                    { symbol: '💰', name: 'Bonus', effect: 'salary', value: 5000, color: '#gold' },
+                    { symbol: '📊', name: 'Performance Report', effect: 'productivity', value: 25, color: '#4444ff' },
+                    { symbol: '🏆', name: 'Promotion', effect: 'reputation', value: 10, color: '#gold' }
+                ];
+                
+                for (let i = 0; i < numItems; i++) {
+                    this.placeEntityRandomly((x, y) => {
+                        const itemType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+                        this.items.push({ x, y, ...itemType });
+                    });
+                }
+            }
+            
+            placeEntityRandomly(callback) {
+                let placed = false;
+                let attempts = 0;
+                
+                while (!placed && attempts < 100) {
+                    const x = Math.floor(Math.random() * this.width);
+                    const y = Math.floor(Math.random() * this.height);
+                    
+                    if (this.office[y][x] !== 'wall' && 
+                        (x !== this.employee.x || y !== this.employee.y) &&
+                        !this.enemies.find(e => e.x === x && e.y === y) &&
+                        !this.items.find(i => i.x === x && i.y === y) &&
+                        this.office[y][x] !== 'elevator') {
+                        
+                        callback(x, y);
+                        placed = true;
+                    }
+                    attempts++;
+                }
+            }
+            
+            moveEmployee(dx, dy) {
+                if (this.gameOver) return;
+                
+                const newX = this.employee.x + dx;
+                const newY = this.employee.y + dy;
+                
+                if (newX < 0 || newX >= this.width || newY < 0 || newY >= this.height) return;
+                if (this.office[newY][newX] === 'wall') return;
+                
+                // Check for corporate conflicts
+                const enemy = this.enemies.find(e => e.x === newX && e.y === newY);
+                if (enemy) {
+                    this.corporateConflict(enemy);
+                    return;
+                }
+                
+                // Check for elevator
+                if (this.office[newY][newX] === 'elevator') {
+                    this.takeElevator();
+                    return;
+                }
+                
+                this.employee.x = newX;
+                this.employee.y = newY;
+                
+                // Stamina cost for movement
+                this.employee.stamina = Math.max(0, this.employee.stamina - 1);
+                
+                // Check for office items
+                const item = this.items.find(i => i.x === newX && i.y === newY);
+                if (item) {
+                    this.collectItem(item);
+                }
+                
+                // Move corporate enemies
+                this.moveCorporateEnemies();
+                this.render();
+            }
+            
+            corporateConflict(enemy) {
+                const employeeDamage = Math.max(1, this.employee.performance - Math.floor(Math.random() * 3));
+                const enemyDamage = Math.max(1, enemy.attack - this.employee.reputation - Math.floor(Math.random() * 3));
+                
+                enemy.health -= employeeDamage;
+                this.log(`<span class="damage">💼 You challenge ${enemy.name} with performance! (-${employeeDamage} corporate health)</span>`);
+                
+                if (enemy.health <= 0) {
+                    this.log(`<span class="level-up">🏆 ${enemy.name} has been outperformed! You gain respect.</span>`);
+                    this.employee.productivity += enemy.productivity;
+                    this.employee.salary += Math.floor(Math.random() * 2000) + 1000;
+                    this.enemies = this.enemies.filter(e => e !== enemy);
+                    this.checkPromotion();
+                } else {
+                    this.employee.health -= enemyDamage;
+                    this.log(`<span class="damage">⚔️ ${enemy.name} undermines you! (-${enemyDamage} morale)</span>`);
+                    
+                    if (this.employee.health <= 0) {
+                        this.gameOver = true;
+                        this.showTermination();
+                        return;
+                    }
+                }
+                
+                this.render();
+            }
+            
+            moveCorporateEnemies() {
+                this.enemies.forEach(enemy => {
+                    // Corporate AI: move towards employee if in "meeting range"
+                    const dx = this.employee.x - enemy.x;
+                    const dy = this.employee.y - enemy.y;
+                    const distance = Math.abs(dx) + Math.abs(dy);
+                    
+                    if (distance <= 6 && Math.random() < 0.4) {
+                        const moveX = dx > 0 ? 1 : dx < 0 ? -1 : 0;
+                        const moveY = dy > 0 ? 1 : dy < 0 ? -1 : 0;
+                        
+                        const direction = Math.random() < 0.5 ? [moveX, 0] : [0, moveY];
+                        const newX = enemy.x + direction[0];
+                        const newY = enemy.y + direction[1];
+                        
+                        if (newX >= 0 && newX < this.width && newY >= 0 && newY < this.height &&
+                            this.office[newY][newX] !== 'wall' &&
+                            !this.enemies.find(e => e !== enemy && e.x === newX && e.y === newY)) {
+                            enemy.x = newX;
+                            enemy.y = newY;
+                        }
+                    }
+                });
+            }
+            
+            collectItem(item) {
+                if (this.inventory.length >= 12) {
+                    this.log('<span class="loot">📦 Your briefcase is full!</span>');
+                    return;
+                }
+                
+                this.inventory.push(item);
+                this.items = this.items.filter(i => i !== item);
+                this.log(`<span class="loot">💼 Acquired ${item.name}!</span>`);
+            }
+            
+            useItem(index) {
+                const item = this.inventory[index];
+                if (!item) return;
+                
+                let used = false;
+                
+                switch (item.effect) {
+                    case 'stamina':
+                        if (this.employee.stamina < this.employee.maxStamina) {
+                            this.employee.stamina = Math.min(this.employee.maxStamina, this.employee.stamina + item.value);
+                            this.log(`<span class="heal">☕ ${item.name} restored energy! (+${item.value} stamina)</span>`);
+                            used = true;
+                        }
+                        break;
+                    case 'productivity':
+                        this.employee.productivity = Math.min(this.employee.maxProductivity, this.employee.productivity + item.value);
+                        this.log(`<span class="heal">📊 ${item.name} improved workflow! (+${item.value} productivity)</span>`);
+                        used = true;
+                        break;
+                    case 'performance':
+                        this.employee.performance += item.value;
+                        this.log(`<span class="level-up">💻 ${item.name} enhanced capabilities! (+${item.value} performance)</span>`);
+                        used = true;
+                        break;
+                    case 'salary':
+                        this.employee.salary += item.value;
+                        this.log(`<span class="loot">💰 ${item.name}! Salary increased by ${item.value}</span>`);
+                        used = true;
+                        break;
+                    case 'reputation':
+                        this.employee.reputation += item.value;
+                        this.log(`<span class="level-up">🏆 ${item.name} boosted reputation! (+${item.value})</span>`);
+                        used = true;
+                        break;
+                }
+                
+                if (used) {
+                    this.inventory.splice(index, 1);
+                    this.render();
+                }
+            }
+            
+            checkPromotion() {
+                const requiredProductivity = this.employee.level * 100;
+                if (this.employee.productivity >= requiredProductivity) {
+                    this.employee.level++;
+                    this.employee.productivity = 0;
+                    this.employee.maxProductivity += 20;
+                    
+                    const healthBonus = 20 + Math.floor(Math.random() * 15);
+                    const staminaBonus = 15 + Math.floor(Math.random() * 10);
+                    this.employee.maxHealth += healthBonus;
+                    this.employee.maxStamina += staminaBonus;
+                    this.employee.health = this.employee.maxHealth;
+                    this.employee.stamina = this.employee.maxStamina;
+                    this.employee.performance += 3;
+                    this.employee.reputation += 2;
+                    this.employee.salary += 15000;
+                    
+                    this.log(`<span class="level-up">🎉 PROMOTION! Level ${this.employee.level}!</span>`);
+                    this.log(`<span class="level-up">📈 Health +${healthBonus}, Stamina +${staminaBonus}, Performance +3</span>`);
+                }
+            }
+            
+            takeElevator() {
+                this.floor++;
+                const theme = this.corporateThemes[Math.min(this.floor, 5)] || "EXECUTIVE PENTHOUSE";
+                this.log(`<span class="level-up">🏢 Ascending to Floor ${this.floor} - ${theme}</span>`);
+                
+                // Restore some stamina for reaching new floor
+                this.employee.stamina = Math.min(this.employee.maxStamina, this.employee.stamina + 20);
+                
+                this.generateOffice();
+                this.render();
+                
+                document.getElementById('floorIndicator').textContent = `FLOOR ${this.floor} - ${theme}`;
+            }
+            
+            render() {
+                const floorElement = document.getElementById('officeFloor');
+                floorElement.innerHTML = '';
+                
+                for (let y = 0; y < this.height; y++) {
+                    for (let x = 0; x < this.width; x++) {
+                        const tile = document.createElement('div');
+                        tile.className = 'tile';
+                        
+                        if (x === this.employee.x && y === this.employee.y) {
+                            tile.className += ' employee';
+                            tile.textContent = '👤';
+                        } else {
+                            const enemy = this.enemies.find(e => e.x === x && e.y === y);
+                            const item = this.items.find(i => i.x === x && i.y === y);
+                            
+                            if (enemy) {
+                                tile.className += ` ${enemy.name.toLowerCase().replace(' ', '-')}`;
+                                tile.textContent = enemy.symbol;
+                                tile.title = `${enemy.name} (Health: ${enemy.health}/${enemy.maxHealth})`;
+                            } else if (item) {
+                                tile.className += ' floor';
+                                tile.textContent = item.symbol;
+                                tile.style.color = item.color;
+                                tile.title = item.name;
+                                tile.onclick = () => {
+                                    if (Math.abs(x - this.employee.x) <= 1 && Math.abs(y - this.employee.y) <= 1) {
+                                        this.collectItem(item);
+                                        this.render();
+                                    }
+                                };
+                            } else {
+                                const cellType = this.office[y][x];
+                                tile.className += ` ${cellType}`;
+                                
+                                switch (cellType) {
+                                    case 'wall':
+                                        tile.textContent = '█';
+                                        break;
+                                    case 'cubicle':
+                                        tile.textContent = '▦';
+                                        break;
+                                    case 'server-room':
+                                        tile.textContent = '▣';
+                                        break;
+                                    case 'elevator':
+                                        tile.textContent = '↑';
+                                        break;
+                                    default:
+                                        tile.textContent = '';
+                                }
+                            }
+                        }
+                        
+                        floorElement.appendChild(tile);
+                    }
+                }
+                
+                this.updateHUD();
+            }
+            
+            updateHUD() {
+                document.getElementById('level').textContent = this.employee.level;
+                document.getElementById('floor').textContent = this.floor;
+                document.getElementById('performance').textContent = this.employee.performance;
+                document.getElementById('reputation').textContent = this.employee.reputation;
+                document.getElementById('salary').textContent = this.employee.salary.toLocaleString();
+                
+                const healthPercent = (this.employee.health / this.employee.maxHealth) * 100;
+                const staminaPercent = (this.employee.stamina / this.employee.maxStamina) * 100;
+                const productivityPercent = (this.employee.productivity / this.employee.maxProductivity) * 100;
+                
+                document.getElementById('healthFill').style.width = healthPercent + '%';
+                document.getElementById('staminaFill').style.width = staminaPercent + '%';
+                document.getElementById('productivityFill').style.width = productivityPercent + '%';
+                
+                document.getElementById('healthText').textContent = `Health: ${this.employee.health}/${this.employee.maxHealth}`;
+                document.getElementById('staminaText').textContent = `Stamina: ${this.employee.stamina}/${this.employee.maxStamina}`;
+                document.getElementById('productivityText').textContent = `Productivity: ${this.employee.productivity}/${this.employee.maxProductivity}`;
+                
+                // Update inventory
+                const inventoryEl = document.getElementById('inventory');
+                inventoryEl.innerHTML = '';
+                
+                for (let i = 0; i < 12; i++) {
+                    const slot = document.createElement('div');
+                    slot.className = 'inventory-slot';
+                    
+                    if (this.inventory[i]) {
+                        slot.className += ' has-item';
+                        slot.textContent = this.inventory[i].symbol;
+                        slot.style.color = this.inventory[i].color;
+                        slot.title = this.inventory[i].name;
+                        slot.onclick = () => this.useItem(i);
+                    }
+                    
+                    inventoryEl.appendChild(slot);
+                }
+            }
+            
+            log(message) {
+                const logEl = document.getElementById('corporateLog');
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                entry.innerHTML = message;
+                logEl.appendChild(entry);
+                logEl.scrollTop = logEl.scrollHeight;
+                
+                // Keep only last 30 messages
+                while (logEl.children.length > 30) {
+                    logEl.removeChild(logEl.firstChild);
+                }
+            }
+            
+            showTermination() {
+                const gameOverEl = document.createElement('div');
+                gameOverEl.className = 'game-over-screen';
+                gameOverEl.innerHTML = `
+                    <div class="game-over-content">
+                        <h1 style="color: #ff4444; font-size: 2em; margin-bottom: 20px;">TERMINATED</h1>
+                        <p style="font-size: 1.2em; margin-bottom: 15px;">Your corporate journey has ended</p>
+                        <p>Final Level: ${this.employee.level}</p>
+                        <p>Highest Floor: ${this.floor}</p>
+                        <p>Final Salary: ${this.employee.salary.toLocaleString()}</p>
+                        <p>Performance Score: ${this.employee.performance * this.employee.level * this.floor}</p>
+                        <button class="corporate-button" onclick="location.reload()">New Career</button>
+                    </div>
+                `;
+                document.body.appendChild(gameOverEl);
+            }
+            
+            setupControls() {
+                // Auto-regenerate stamina over time
+                setInterval(() => {
+                    if (this.employee.stamina < this.employee.maxStamina && !this.gameOver) {
+                        this.employee.stamina = Math.min(this.employee.maxStamina, this.employee.stamina + 1);
+                        this.updateHUD();
+                    }
+                }, 2000);
+                
+                document.addEventListener('keydown', (e) => {
+                    if (this.gameOver) return;
+                    
+                    // Require stamina for movement
+                    if (this.employee.stamina <= 0) {
+                        this.log('<span class="damage">😴 Too exhausted to move! Find coffee!</span>');
+                        return;
+                    }
+                    
+                    switch (e.key.toLowerCase()) {
+                        case 'w':
+                        case 'arrowup':
+                            this.moveEmployee(0, -1);
+                            e.preventDefault();
+                            break;
+                        case 's':
+                        case 'arrowdown':
+                            this.moveEmployee(0, 1);
+                            e.preventDefault();
+                            break;
+                        case 'a':
+                        case 'arrowleft':
+                            this.moveEmployee(-1, 0);
+                            e.preventDefault();
+                            break;
+                        case 'd':
+                        case 'arrowright':
+                            this.moveEmployee(1, 0);
+                            e.preventDefault();
+                            break;
+                    }
+                });
+            }
+        }
+        
+        // Initialize the corporate nightmare
+        const corporateGame = new CorporateMaze();
+    </script>
+</body>
+</html>
